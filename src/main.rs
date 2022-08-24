@@ -15,6 +15,7 @@ struct Register<'a> {
     offset: u16,
     num_bits: usize,
     num_decimals: usize,
+    value: f32,
 }
 
 /* 
@@ -50,6 +51,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3008,
             num_bits: 32,
             num_decimals: 0,
+            value: 0.0,
         },
         Register {
             name: "kWh today",
@@ -57,6 +59,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3014,
             num_bits: 16,
             num_decimals: 1,
+            value: 0.0,
         },
         Register {
             name: "kWh yesterday",
@@ -64,6 +67,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3015,
             num_bits: 16,
             num_decimals: 1,
+            value: 0.0,
         },
         Register {
             name: "kWh this month",
@@ -71,6 +75,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3010,
             num_bits: 32,
             num_decimals: 0,
+            value: 0.0,
         },
         Register {
             name: "kWh last month",
@@ -78,6 +83,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3012,
             num_bits: 32,
             num_decimals: 0,
+            value: 0.0,
         },
 
         Register {
@@ -86,6 +92,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3004,
             num_bits: 32,
             num_decimals: 0,
+            value: 0.0,
         },
 
         Register {
@@ -94,6 +101,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3021,
             num_bits: 16,
             num_decimals: 1,
+            value: 0.0,
         },
         Register {
             name: "DC1 current",
@@ -101,6 +109,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3022,
             num_bits: 16,
             num_decimals: 1,
+            value: 0.0,
         },
         Register {
             name: "DC2 voltage",
@@ -108,6 +117,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3023,
             num_bits: 16,
             num_decimals: 1,
+            value: 0.0,
         },
         Register {
             name: "DC2 current",
@@ -115,6 +125,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3024,
             num_bits: 16,
             num_decimals: 1,
+            value: 0.0,
         },
 
         Register {
@@ -123,6 +134,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3035,
             num_bits: 16,
             num_decimals: 1,
+            value: 0.0,
         },
 
         Register {
@@ -131,6 +143,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3041,
             num_bits: 16,
             num_decimals: 1,
+            value: 0.0,
         },
 
         Register {
@@ -139,6 +152,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             offset: 3042,
             num_bits: 16,
             num_decimals: 2,
+            value: 0.0,
         },
 ];
 
@@ -154,33 +168,37 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let _mqtt_eventloop_thread = tokio::spawn(run_mqtt_eventloop(eventloop, Shutdown::new(notify_shutdown.subscribe())));
 
-    println!("Reading sensors");
-    let t = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
-    client
-        .publish("meters/solis/online", QoS::AtLeastOnce, false, format!("{}", t.as_secs()))
-            .await?;
+    println!("Collecting data");
     
-    for r in registers {
-        let rsp = ctx.read_input_registers(r.offset, (r.num_bits/16) as u16).await?;
+    for mut r in registers {
+
+        let rsp = tokio::time::timeout(std::time::Duration::from_secs(5), ctx.read_input_registers(r.offset, (r.num_bits/16) as u16)).await??;
         let x = match r.num_bits {
             16 => rsp[0] as u32,
             32 => vec_u16_to_u32(&rsp),
             _ => 0 // xxx: should be error
         };
-        let p = match r.num_decimals {
+        r.value = match r.num_decimals {
             0 => x as f32,
             1 => x as f32 / 10.0,
             2 => x as f32 / 100.0,
             _ => x as f32,
         };
         
-        println!("{}: {} {}", r.name, p, r.unit);
+        println!("{}: {} {}", r.name, r.value, r.unit);
         let mqtt_topic = format!("meters/solis/{}_{}", r.name.to_lowercase().replace(" ", "_"),
                                  r.unit.to_lowercase().replace("°", ""));
         client
-            .publish(mqtt_topic, QoS::AtLeastOnce, false, format!("{}", p))
+            .publish(mqtt_topic, QoS::AtLeastOnce, false, format!("{}", r.value))
             .await?
     }
+
+    let t = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
+    client
+        .publish("meters/solis/online", QoS::AtLeastOnce, false, format!("{}", t.as_secs()))
+            .await?;
+
+    /* Debug */
 
     for n in 3000..3099 {
 //    for n in 3000..3030 {
