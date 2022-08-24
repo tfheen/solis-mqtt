@@ -1,0 +1,12 @@
+[package]
+name = "solis"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio-modbus = { version = "0.5.3", default-features = false, features = ["rtu"] }
+tokio = { version = "1.20.1", features = ["rt", "macros"] }
+tokio-serial = "5.4.3"
+rumqttc = "0.14.0"
