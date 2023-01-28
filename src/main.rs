@@ -41,7 +41,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (notify_shutdown, _) = tokio::sync::broadcast::channel(1);
     let tty_path = "/dev/ttyUSB0";
     let slave = Slave(0x01);
-    let mut mqttoptions = MqttOptions::new("solis-logger", "mqtt.err.no", 1883);
+    let mut mqttoptions = MqttOptions::new("solis-logger", "mqtt", 1883);
     mqttoptions.set_keep_alive(std::time::Duration::from_secs(5));
 
     let registers = vec![
