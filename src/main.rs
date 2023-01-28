@@ -207,9 +207,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             continue;
         }
   */      
-        let rsp = ctx.read_input_registers(n, 1).await?;
+        let rsp = tokio::time::timeout(std::time::Duration::from_secs(5), ctx.read_input_registers(n, 1)).await??;
         println!("register {} (u16): {:?}", n, rsp);
-        let rsp = ctx.read_input_registers(n, 2).await?;
+        let rsp = tokio::time::timeout(std::time::Duration::from_secs(5), ctx.read_input_registers(n, 2)).await??;
         let x = vec_u16_to_u32(&rsp);
         println!("register {} (u32): {:?} {}", n, rsp, x);
     }
