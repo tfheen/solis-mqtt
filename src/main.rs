@@ -161,7 +161,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .parity(tokio_serial::Parity::None)
         .stop_bits(tokio_serial::StopBits::One)
         .timeout(std::time::Duration::new(5, 0));
-    let port = SerialStream::open(&builder).unwrap();
+    let port = SerialStream::open(&builder)?;
     
     let mut ctx = rtu::connect_slave(port, slave).await?;
     let (client, eventloop) = AsyncClient::new(mqttoptions, 10);
