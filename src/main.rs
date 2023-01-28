@@ -238,12 +238,9 @@ register 3012 (u32): [0, 1423] 1423 - kwh last month
 register 3014 (u16): [373] - kwh today / 10
 register 3015 (u16): [146] - kwh yesterday / 16
 
-register 3016 (u16): [0]
-register 3016 (u32): [0, 7334] 7334
-register 3017 (u16): [7334]
-register 3017 (u32): [7334, 0] 480641024
-register 3018 (u16): [0]
+register 3016 (u32): [0, 7334] 7334 - production this year?
 register 3018 (u32): [0, 8842] 8842 - production last year? (kwh)
+
 register 3020 (u16): [0]
 register 3020 (u32): [0, 4400] 4400
 register 3021 (u16): [4400]
